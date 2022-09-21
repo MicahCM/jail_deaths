@@ -1,15 +1,26 @@
 ---
-title: "Analysis of Jail Deaths"
+title: "Investigative Memorandum re National Jail Death Crisis"
+author: "Micah Clark Moody"
 output: github_document
+date: 2022-09-21
 ---
 
-```{r, setup, echo=FALSE}
-library(tidyverse)
+This document has the code corresponding to [this investigative memorandum](https://docs.google.com/document/d/1PwExEtuXhfnc-PM-9RGYx75Xs753CiVJZTHKCIE7_5E/edit#heading=h.1895lafuquc4) on the national jail crisis. Please refer to the memo for background and interpretation of results.
+
+Note: When jail deaths or average daily populations were not recorded in the data set, I replaced the missing value with zero. This will lead to an under count of jail deaths and an undercount of average daily population. While there are few missing values, if you're interested in digging deeper into jails with few incidence of death, it's important to double-check the death incidence were in fact reported.
+
+```{r, setup, echo = FALSE, message = FALSE}
+# installing needed packages
+library(tidyverse) 
 library(lubridate)
 library(readr)
 library(dplyr)
-library(knitr) 
-library(tinytex)
+library(knitr)
+
+# hiding code and messages for all code chunks
+opts_chunk$set(echo = FALSE)
+opts_chunk$set(message = FALSE)
+
 ```
 
 ```{r, import_data}
@@ -17,86 +28,163 @@ library(tinytex)
 # import from Micah's local computer
 all_jails <- read.csv("C:\\Users\\Micah Clark Moody\\Desktop\\R\\2022-09 Natl Jail Crisis\\Allstatesinsurvey\\all_jails.csv")
 
+# creating lists of columns with death totals
+d_cols <- c("d2008", "d2009", "d2010", "d2011", "d2012", "d2013", "d2014", "d2015", "d2016", "d2017", "d2018", "d2019")
+
+# creating lists of columns with average daily population 
+adp_cols <- c("adp2008", "adp2009", "adp2010", "adp2011", "adp2012", "adp2013", "adp2014", "adp2015", "adp2016", "adp2017", "adp2018", "adp2019")
+
+# creating column names lists
+names_total <- c("State", "County", "Jail", "Deaths", "Average Daily Population")
+names_by_pop <- c("State", "County", "Jail", "Deaths", "Average Daily Population", "Deaths per Average Daily Population")
+
+# creating varible for total deaths from 2008 to 2019
+all_jails$d_total <- all_jails %>%
+  select(all_of(d_cols)) %>%
+  
+  # replacing NA values with 0 which will undercount deaths
+  mutate_all(~replace(., is.na(.), 0)) %>%
+  rowSums()
+
+# creating variable for mean daily population from 2008 to 2019
+all_jails$adp_mean <- all_jails %>%
+  select(all_of(adp_cols)) %>%
+  
+  # replacing NA values with 0 which will undercount population
+  mutate_all(~replace(., is.na(.), 0)) %>%
+  rowMeans()
+
 ```
 
 # 1. Total # of jail deaths in the country since ____
 
-There is not an exact count of people who have died while their physical freedom was constrained by criminal legal systems in the US. 
+See [full memo](https://docs.google.com/document/d/1PwExEtuXhfnc-PM-9RGYx75Xs753CiVJZTHKCIE7_5E/edit#heading=h.1895lafuquc4)
 
 # 2. 3-5 counties/jurisdictions with the largest # of jail deaths
-## 2a. Counties with the most jail deaths in 2019
-d2019 = deaths in 2019
-```{r, 2a}
+
+### Table 2a: Highest Jail population
+
+This table shows the 10 jails with the highest average daily population in 2019 for reference.
+
+```{r, biggest_jails}
+all_jails %>%
+  slice_max(order_by = adp_mean, n = 10) %>%
+  
+  # printing table
+  select(state, county, jail, adp2019) %>%
+  kable(col.names = c("State", "County", "Jail", "Average Daily Population"))
+
+```
+
+### Table 2b: Highest Jail Deaths in 2019
+
+This table represents the 20 jails with the most reported deaths in 2019.
+
+```{r, 2019_death_max}
 all_jails %>%
   slice_max(order_by = d2019, n = 20) %>%
   
   # printing table
   select(state, county, jail, d2019, adp2019) %>%
-  kable()
+  kable(col.names = names_total)
 
 ```
 
-## 2b. Counties with the most jail deaths from 2008 to 2019
+### Table 2c: Highest Jail Deaths from 2008 to 2019
 
-```{r, 2b, include=FALSE}
+This table represents the 20 jails with the most reported deaths from 2008 to 2019.
 
+```{r, total_death_max}
+all_jails %>%
+  slice_max(order_by = d_total, n = 20) %>%
+  
+  # printing table
+  select(state, county, jail, d_total, adp_mean) %>%
+  kable(col.names = names_total)
 ```
 
-## 2c. Jail deaths by jail population in 2019
-d2019 = deaths in 2019
-adp2019 = average daily population in 2019
-```{r, 2c}
+### Table 2d: Jail deaths by jail population in 2019
+
+This table represents the 20 jails with the highest rate of jail death in 2019. This is calculated by dividing the total deaths by the average daily population. This is to identify small and large jails with high rates of death. 
+
+For example, in this comparison a jail with 1 death and an average daily population of 1000 will have the same death rate as a jail with 10 deaths and an average daily population of 10,000.
+
+```{r, 2019_d_by_adp}
 all_jails %>%
   mutate(d_by_adp = d2019 / adp2019) %>%
   slice_max(order_by = d_by_adp, n = 20) %>%
   
   # printing table
   select(state, county, jail, d2019, adp2019, d_by_adp) %>%
-  kable()
+  kable(col.names = names_by_pop)
 
 ```
 
-## 2d. Jail deaths by jail population from 2008 to 2019
+### Table 2e: Jail deaths by jail population from 2008 to 2019
 
-```{r, 2d, include=FALSE}
+This table represents the 20 jails with the highest rate of jail death from 2008 to 2019. The methods are identical to Table 2d above.
+
+```{r, d_by_adp_total}
+all_jails %>%
+  mutate(d_by_adp = d_total / adp_mean) %>%
+  slice_max(order_by = adp_mean, n = 20) %>%
+  
+  # printing table
+  select(state, county, jail, d_total, adp_mean, d_by_adp) %>%
+  kable(col.names = names_by_pop)
 
 ```
 
 # 3. 3-5 counties/jurisdictions with the lowest # of jail deaths
-## 3a. Counties with the least jail deaths in 2019 (not instructive)
-d2019 = deaths in 2019
 
-Result: 217 of 523 jails with 0 reported deaths in 2019
+### Table 3a: Jails in the 50 highest jail population with the lowest number of jail deaths in 2019.
 
-```{r, 3a, include=FALSE}
+This table represents high-population jails with the lowest rates of jail death in 2019.
+
+```{r, min_d}
 all_jails %>%
-  slice_min(order_by = `d2019`)
-
-```
-
-## 3b. Jails in 2019 in the 100 highest dail population with the lowest number of jail deaths
-d2019 = deaths in 2019
-
-```{r, 3b}
-all_jails %>%
-  slice_max(order_by = adp2019, n = 100) %>%
-  slice_min(order_by = `d2019`) %>%
+  slice_max(order_by = adp2019, n = 50) %>%
+  slice_min(order_by = `d2019`, n = 10) %>%
   
   # printing table
   select(state, county, jail, d2019, adp2019) %>%
-  kable()
+  kable(col.names = names_total)
 
 ```
 
-## 3c. Counties with the least jail deaths from 2008 to 2019 (most instructive)
+### Table 3b: Jails in the 50 highest jail population with the lowest number of jail deaths from 2008 to 2019
 
-```{r, 3c, include=FALSE}
+This table represents high-population jails with the lowest rates of jail death from 2008 to 2019.
 
+```{r, 3e, include=FALSE}
+all_jails %>%
+  mutate(d_by_adp = d_total / adp_mean) %>%
+  slice_max(order_by = adp2019, n = 100) %>%
+  slice_min(order_by = d_by_adp, n = 20) %>%
+  
+  # printing table
+  select(state, county, jail, d_total, adp_mean, d_by_adp) %>%
+  kable(col.names = names_by_pop)
 ```
 
-## 3d. Jails in 2019 in the 100 highest dail population with the lowest number of jail deaths by population
-d2019 = deaths in 2019
-adp2019 = average daily population in 2019
+### Table 3c: 2008 to 2019 high-population jails with lowest death rates
+
+This table represents high-population jails with the lowest rates of jail death from 2008 to 2019.
+
+```{r, 3c}
+all_jails %>%
+  slice_max(order_by = adp_mean, n = 50) %>%
+  slice_min(order_by = d_total, n = 10) %>%
+  
+  # printing table
+  select(state, county, jail, d_total, adp_mean) %>%
+  kable(col.names = names_total)
+```
+
+### Table 3d: Jails in 2019 in the 50 highest jail populations with the lowest death rates in 2019
+
+This table represents high-population jails with the lowest rates of jail death in 2019.
+
 ```{r, 3d}
 all_jails %>%
   mutate(d_by_adp = d2019 / adp2019) %>%
@@ -105,13 +193,6 @@ all_jails %>%
   
   # printing table
   select(state, county, jail, d2019, adp2019, d_by_adp) %>%
-  kable()
+  kable(col.names = names_by_pop)
 
 ```
-
-## 3e. Jail deaths by jail population from 2008 to 2019
-
-```{r, 3e, include=FALSE}
-
-```
-
