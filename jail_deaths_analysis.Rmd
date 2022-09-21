@@ -1,9 +1,9 @@
 ---
 title: "Analysis of Jail Deaths"
-output: pdf_document
+output: github_document
 ---
 
-```{r, setup}
+```{r, setup, echo=FALSE}
 library(tidyverse)
 library(lubridate)
 library(readr)

@@ -1,10 +1,6 @@
 Analysis of Jail Deaths
 ================
 
-``` r
-library(tidyverse)
-```
-
     ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
     ## ✔ ggplot2 3.3.6     ✔ purrr   0.3.4
     ## ✔ tibble  3.1.8     ✔ dplyr   1.0.9
@@ -13,28 +9,23 @@ library(tidyverse)
     ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ## ✖ dplyr::filter() masks stats::filter()
     ## ✖ dplyr::lag()    masks stats::lag()
-
-``` r
-library(lubridate)
-```
-
     ## 
     ## Attaching package: 'lubridate'
+    ## 
     ## 
     ## The following objects are masked from 'package:base':
     ## 
     ##     date, intersect, setdiff, union
 
 ``` r
-library(readr)
-library(dplyr)
-library(knitr) 
-```
-
-``` r
 # import from Micah's local computer
 all_jails <- read.csv("C:\\Users\\Micah Clark Moody\\Desktop\\R\\2022-09 Natl Jail Crisis\\Allstatesinsurvey\\all_jails.csv")
 ```
+
+# 1. Total \# of jail deaths in the country since \_\_\_\_
+
+There is not an exact count of people who have died while their physical
+freedom was constrained by criminal legal systems in the US.
 
 # 2. 3-5 counties/jurisdictions with the largest \# of jail deaths
 
