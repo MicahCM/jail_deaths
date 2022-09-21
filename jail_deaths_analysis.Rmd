@@ -26,9 +26,10 @@ opts_chunk$set(message = FALSE)
 ```{r, import_data}
 
 # import from Micah's local computer
-all_jails <- read.csv("C:\\Users\\Micah Clark Moody\\Desktop\\R\\2022-09 Natl Jail Crisis\\Allstatesinsurvey\\all_jails.csv")
+all_jails <- read.csv("C:\\Users\\Micah Clark Moody\\Desktop\\R\\2022-09 Natl Jail Crisis\\jail_deaths\\jail_deaths\\reuters_data\\all_jails.csv")
 
-# creating lists of columns with death totals
+louisiana_jails <- read.csv("C:\\Users\\Micah Clark Moody\\Desktop\\R\\2022-09 Natl Jail Crisis\\jail_deaths\\jail_deaths\\inc_transparency_data\\inc_transparency_data.csv")
+
 d_cols <- c("d2008", "d2009", "d2010", "d2011", "d2012", "d2013", "d2014", "d2015", "d2016", "d2017", "d2018", "d2019")
 
 # creating lists of columns with average daily population 
@@ -54,6 +55,69 @@ all_jails$adp_mean <- all_jails %>%
   mutate_all(~replace(., is.na(.), 0)) %>%
   rowMeans()
 
+# counting missing values
+all_jails_d_cols <- all_jails %>%
+  select(d_cols)
+
+all_jails$d_NA_count <- rowSums(is.na(all_jails_d_cols))
+
+
+louisiana_jails %>%
+  group_by(Facility) %>%
+  summarize(n())
+```
+
+# Data limitations
+
+### Smaller facilities
+```{r, LA_reuters_comp}
+
+# louisiana totals from Reuters
+LA_R_deaths <- all_jails %>%
+  filter(state == "Louisiana") %>%
+  select(c("d2008", "d2009", "d2010", "d2011", 
+           "d2012", "d2013", "d2014", "d2015", "d2016", 
+           "d2017", "d2018", "d2019")) %>%
+  mutate_all(~replace(., is.na(.), 0)) %>%
+  colSums()
+
+LA_R_years <- c(2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019)
+
+LA_R <- data.frame(LA_R_years, LA_R_deaths)
+
+# louisiana totals from incarceration transparency for Reuters data
+LA_IC_sample <- louisiana_jails %>%
+  filter(Facility %in% c("Caddo Parish Correctional Center", "East Baton Rouge Parish Prison",
+                         "Franklin Parish Detention Center", "Jackson Parish Correctional Center - LaSalle",
+                         "Jefferson Parish Correctional Center", "Lafayette Parish Correctional Center",
+                         "Orleans Parish Prison & TDC", "Ouachita Correctional Center",
+                         "Richwood Correctional Center - LaSalle", "St. Tammany Parish Jail"
+                         )) %>%
+  group_by(Year.Of.Death) %>%
+  summarize("Sample Jails, Deaths counted by Incarceration Transparency" = n())
+
+# louisiana totals from incarceration transparency
+louisiana_jails %>%
+  group_by(Year.Of.Death) %>%
+  summarize("All Jails, Deaths" = n()) %>%
+  left_join(LA_IC_sample) %>%
+  left_join(LA_R, by = c("Year.Of.Death" = "LA_R_years")) %>%
+  filter(Year.Of.Death >= 2014, Year.Of.Death <= 2019) %>%
+  kable(caption = "Table: Comparing Incarceration Transparency and Reuters Count of Jail Deaths in Louisiana", 
+        col.names = c("Year", "All Jail Deaths, IC Count", "Sample Jail Deaths, IC County", "Sample Jail Deaths, Reuters Count"))
+
+```
+
+### Counting missing values
+
+This table counts the number of years with missing death counts by jail. For example, 5 years were missing data for 3 jails.
+
+```{r}
+all_jails %>%
+  group_by(d_NA_count) %>%
+  summarize(count = n()) %>%
+  kable(caption = "Table: Counting the incidence of missing data",
+        col.names = c("Number of Years with Missing Death Counts", "Number of Jails"))
 ```
 
 # 1. Total # of jail deaths in the country since ____
@@ -64,7 +128,7 @@ See [full memo](https://docs.google.com/document/d/1PwExEtuXhfnc-PM-9RGYx75Xs753
 
 ### Table 2a: Highest Jail population
 
-This table shows the 10 jails with the highest average daily population in 2019 for reference.
+This table shows the 10 jails with the highest average daily population from 2008 to 2019 for reference.
 
 ```{r, biggest_jails}
 all_jails %>%
@@ -154,13 +218,14 @@ all_jails %>%
 
 ### Table 3b: Jails in the 50 highest jail population with the lowest number of jail deaths from 2008 to 2019
 
-This table represents high-population jails with the lowest rates of jail death from 2008 to 2019.
+This table represents high-population jails with the lowest rates of jail death from 2008 to 2019. Excludes jails that did not report data for one or more years.
 
-```{r, 3e, include=FALSE}
+```{r, 3b}
 all_jails %>%
   mutate(d_by_adp = d_total / adp_mean) %>%
+  filter(d_NA_count == 0) %>%
   slice_max(order_by = adp2019, n = 100) %>%
-  slice_min(order_by = d_by_adp, n = 20) %>%
+  slice_min(order_by = d_by_adp, n = 10) %>%
   
   # printing table
   select(state, county, jail, d_total, adp_mean, d_by_adp) %>%
@@ -173,12 +238,12 @@ This table represents high-population jails with the lowest rates of jail death 
 
 ```{r, 3c}
 all_jails %>%
-  slice_max(order_by = adp_mean, n = 50) %>%
+  slice_max(order_by = adp_mean, n = 100) %>%
   slice_min(order_by = d_total, n = 10) %>%
   
   # printing table
-  select(state, county, jail, d_total, adp_mean) %>%
-  kable(col.names = names_total)
+  select(state, county, jail, d_total, adp_mean, d_NA_count) %>%
+  kable(col.names = c("State", "County", "Jail", "Deaths", "Average Daily Population", "Years with Unreported Data"))
 ```
 
 ### Table 3d: Jails in 2019 in the 50 highest jail populations with the lowest death rates in 2019
@@ -195,4 +260,18 @@ all_jails %>%
   select(state, county, jail, d2019, adp2019, d_by_adp) %>%
   kable(col.names = names_by_pop)
 
+```
+
+### Table 3e: 2008 to 2019 jails with lowest death rates overall
+
+This table represents high-population jails with the lowest rates of jail death from 2008 to 2019.
+
+```{r, low_d_all_jails}
+all_jails %>%
+  slice_min(order_by = d_total, n = 30) %>%
+  filter(d_NA_count == 0) %>%
+  
+  # printing table
+  select(state, county, jail, d_total, adp_mean) %>%
+  kable(col.names = names_total)
 ```
