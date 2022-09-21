@@ -1,0 +1,117 @@
+---
+title: "Analysis of Jail Deaths"
+output: pdf_document
+---
+
+```{r, setup}
+library(tidyverse)
+library(lubridate)
+library(readr)
+library(dplyr)
+library(knitr) 
+library(tinytex)
+```
+
+```{r, import_data}
+
+# import from Micah's local computer
+all_jails <- read.csv("C:\\Users\\Micah Clark Moody\\Desktop\\R\\2022-09 Natl Jail Crisis\\Allstatesinsurvey\\all_jails.csv")
+
+```
+
+# 1. Total # of jail deaths in the country since ____
+
+There is not an exact count of people who have died while their physical freedom was constrained by criminal legal systems in the US. 
+
+# 2. 3-5 counties/jurisdictions with the largest # of jail deaths
+## 2a. Counties with the most jail deaths in 2019
+d2019 = deaths in 2019
+```{r, 2a}
+all_jails %>%
+  slice_max(order_by = d2019, n = 20) %>%
+  
+  # printing table
+  select(state, county, jail, d2019, adp2019) %>%
+  kable()
+
+```
+
+## 2b. Counties with the most jail deaths from 2008 to 2019
+
+```{r, 2b, include=FALSE}
+
+```
+
+## 2c. Jail deaths by jail population in 2019
+d2019 = deaths in 2019
+adp2019 = average daily population in 2019
+```{r, 2c}
+all_jails %>%
+  mutate(d_by_adp = d2019 / adp2019) %>%
+  slice_max(order_by = d_by_adp, n = 20) %>%
+  
+  # printing table
+  select(state, county, jail, d2019, adp2019, d_by_adp) %>%
+  kable()
+
+```
+
+## 2d. Jail deaths by jail population from 2008 to 2019
+
+```{r, 2d, include=FALSE}
+
+```
+
+# 3. 3-5 counties/jurisdictions with the lowest # of jail deaths
+## 3a. Counties with the least jail deaths in 2019 (not instructive)
+d2019 = deaths in 2019
+
+Result: 217 of 523 jails with 0 reported deaths in 2019
+
+```{r, 3a, include=FALSE}
+all_jails %>%
+  slice_min(order_by = `d2019`)
+
+```
+
+## 3b. Jails in 2019 in the 100 highest dail population with the lowest number of jail deaths
+d2019 = deaths in 2019
+
+```{r, 3b}
+all_jails %>%
+  slice_max(order_by = adp2019, n = 100) %>%
+  slice_min(order_by = `d2019`) %>%
+  
+  # printing table
+  select(state, county, jail, d2019, adp2019) %>%
+  kable()
+
+```
+
+## 3c. Counties with the least jail deaths from 2008 to 2019 (most instructive)
+
+```{r, 3c, include=FALSE}
+
+```
+
+## 3d. Jails in 2019 in the 100 highest dail population with the lowest number of jail deaths by population
+d2019 = deaths in 2019
+adp2019 = average daily population in 2019
+```{r, 3d}
+all_jails %>%
+  mutate(d_by_adp = d2019 / adp2019) %>%
+  slice_max(order_by = adp2019, n = 100) %>%
+  slice_min(order_by = d_by_adp, n = 20) %>%
+  
+  # printing table
+  select(state, county, jail, d2019, adp2019, d_by_adp) %>%
+  kable()
+
+```
+
+## 3e. Jail deaths by jail population from 2008 to 2019
+
+```{r, 3e, include=FALSE}
+
+```
+
